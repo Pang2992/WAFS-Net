@@ -1,0 +1,142 @@
+# ============================================================
+# WAFS-Net Experiment Configuration
+# ============================================================
+
+project:
+  name: "WAFS-Net"
+  task: "Binary ovarian tumor classification"
+  num_classes: 2
+  seed: 42
+
+# ============================================================
+# Data
+# ============================================================
+
+data:
+  train_dir: "data/processed/mmotu_2d_cls/train"
+  val_dir: "data/processed/mmotu_2d_cls/val"
+
+  image_size: 224
+
+  class_names:
+    - benign
+    - malignant
+
+  class_mapping:
+    benign: 0
+    malignant: 1
+
+# ============================================================
+# Model
+# ============================================================
+
+model:
+  name: "WAFS-Net"
+
+  spatial_encoders:
+    densenet:
+      architecture: "DenseNet121"
+      output_dim: 1024
+      pretrained: true
+
+    efficientnet:
+      architecture: "EfficientNet-B0"
+      output_dim: 1280
+      pretrained: true
+
+  wavelet:
+    type: "Haar"
+    level: 1
+    output_dim: 256
+
+  fusion:
+    type: "adaptive_frequency_spatial_fusion"
+    input_dim: 2560
+
+    gate:
+      input_dim: 2560
+      hidden_dim: 640
+      output_dim: 2560
+
+  classifier:
+    input_dim: 2560
+    hidden_dims:
+      - 768
+      - 256
+    output_dim: 2
+    dropout: 0.5
+
+# ============================================================
+# Training
+# ============================================================
+
+training:
+  epochs: 50
+  batch_size: 16
+
+  optimizer:
+    name: "AdamW"
+    learning_rate: 0.0001
+    weight_decay: 0.0001
+
+  loss:
+    name: "WeightedCrossEntropy"
+
+  scheduler:
+    name: "ReduceLROnPlateau"
+    mode: "max"
+    factor: 0.5
+    patience: 3
+
+# ============================================================
+# Evaluation
+# ============================================================
+
+evaluation:
+  positive_class: "malignant"
+
+  metrics:
+    - ROC-AUC
+    - PR-AUC
+    - Accuracy
+    - Sensitivity
+    - Specificity
+    - Precision
+    - NPV
+    - F1
+    - Balanced Accuracy
+
+  decision_threshold:
+    method: "Youden index"
+    value: 0.027425
+
+# ============================================================
+# Checkpoint
+# ============================================================
+
+checkpoint:
+  directory: "outputs/checkpoints"
+  best_model: "mmotu_dual_wavelet_binary_best.pth"
+
+# ============================================================
+# External Validation
+# ============================================================
+
+external_validation:
+  enabled: true
+
+  institution:
+    "Shengjing Hospital of China Medical University"
+
+  reference_standard:
+    "Postoperative pathological diagnosis"
+
+  data_publicly_available: false
+
+# ============================================================
+# Reproducibility
+# ============================================================
+
+reproducibility:
+  deterministic: true
+  cudnn_benchmark: false
